@@ -6,6 +6,24 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Кастомні рівні для winston (додаємо SUCCESS)
+const customLevels = {
+    levels: {
+        error: 0,
+        warn: 1,
+        success: 2,
+        info: 3,
+        debug: 4
+    },
+    colors: {
+        error: 'red',
+        warn: 'yellow',
+        success: 'green',
+        info: 'blue',
+        debug: 'magenta'
+    }
+};
+
 // Налаштування winston для запису у файли
 const fileTransport = new DailyRotateFile({
     filename: path.join(__dirname, '../../logs/%DATE%.log'),
@@ -19,9 +37,13 @@ const fileTransport = new DailyRotateFile({
 });
 
 const winstonLogger = winston.createLogger({
+    levels: customLevels.levels,  // Використовуємо кастомні рівні
     transports: [fileTransport],
     exitOnError: false
 });
+
+// Додаємо кольори
+winston.addColors(customLevels.colors);
 
 // Кружечки та статуси
 const statusConfig = {

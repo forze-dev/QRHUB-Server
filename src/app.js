@@ -7,6 +7,7 @@ import { logInfo } from './utils/logger.js';
 
 // Middleware imports
 import errorMiddleware, { notFoundMiddleware } from './middleware/errorMiddleware.js';
+import router from './routes/index.js';
 
 // Routes imports (створимо пізніше)
 // import routes from './routes/index.js';
@@ -124,8 +125,7 @@ app.get('/', (req, res) => {
 // API ROUTES
 // ============================================
 
-// Підключаємо всі routes (створимо пізніше)
-// app.use('/api', routes);
+app.use('/api', router);
 
 // Тимчасовий роут для тестування
 app.get('/api/test', (req, res) => {

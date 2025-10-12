@@ -133,14 +133,6 @@ const userSchema = new Schema(
 );
 
 // ============================================
-// INDEXES
-// ============================================
-
-userSchema.index({ email: 1, isActive: 1 });
-userSchema.index({ googleId: 1 });
-userSchema.index({ referralCode: 1 }, { sparse: true });
-
-// ============================================
 // VIRTUALS
 // ============================================
 
