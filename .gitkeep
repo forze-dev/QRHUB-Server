@@ -1,0 +1,4 @@
+# Створюємо порожні .gitkeep щоб git відстежував порожні папки
+touch public/uploads/.gitkeep
+touch public/qrcodes/.gitkeep
+touch logs/.gitkeep

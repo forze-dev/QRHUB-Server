@@ -1,0 +1,2519 @@
+---
+
+## 26. Hetzner VPS Деплой - Детальна інструкція
+
+### 26.1 Налаштування VPS
+
+```bash
+# 1. Створити VPS на Hetzner Cloud
+# - Виберіть Ubuntu 22.04 LTS
+# - Мінімум: CX11 (2GB RAM, 1 vCPU) для старту
+# - Рекомендовано: CPX21 (4GB RAM, 3 vCPU) для production
+# - Location: Falkenstein (FSN1) або Nuremberg (NBG1)
+
+# 2. Підключитись до VPS через SSH
+ssh root@YOUR_SERVER_IP
+
+# 3. Оновити систему
+apt update && apt upgrade -y
+
+# 4. Встановити Node.js 18+
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt install -y nodejs
+
+# 5. Встановити PM2
+npm install -g pm2
+
+# 6. Встановити Nginx
+apt install -y nginx
+
+# 7. Встановити Certbot для SSL
+apt install -y certbot python3-certbot-nginx
+
+# 8# QRHub Backend - Технічне завдання
+
+## 1. Загальна інформація
+
+**Проект:** QRHub API Backend  
+**Стек:** Node.js + Express + MongoDB + Mongoose  
+**Версія:** MVP v1.0 (з закладкою на майбутнє)  
+**Архітектура:** Layered Architecture (3-tier)
+
+---
+
+## 2. Структура проекту
+
+```
+qrhub-backend/
+├── src/
+│   ├── controllers/          # HTTP обробка (Classes)
+│   │   ├── AuthController.js
+│   │   ├── UserController.js
+│   │   ├── BusinessController.js
+│   │   ├── WebsiteController.js
+│   │   ├── QRCodeController.js
+│   │   ├── AnalyticsController.js
+│   │   ├── RequestController.js
+│   │   └── SubscriptionController.js (для майбутнього)
+│   │
+│   ├── services/             # Бізнес-логіка (Classes)
+│   │   ├── AuthService.js
+│   │   ├── UserService.js
+│   │   ├── BusinessService.js
+│   │   ├── WebsiteService.js
+│   │   ├── QRCodeService.js
+│   │   ├── AnalyticsService.js
+│   │   ├── RequestService.js
+│   │   ├── SubscriptionService.js (для майбутнього)
+│   │   ├── PaymentService.js (для майбутнього)
+│   │   └── ReferralService.js (для майбутнього)
+│   │
+│   ├── models/               # MongoDB схеми (Mongoose)
+│   │   ├── User.js
+│   │   ├── Business.js
+│   │   ├── Website.js
+│   │   ├── QRCode.js
+│   │   ├── QRScan.js
+│   │   ├── Request.js
+│   │   ├── Subscription.js (для майбутнього)
+│   │   ├── Payment.js (для майбутнього)
+│   │   └── Referral.js (для майбутнього)
+│   │
+│   ├── routes/               # Маршрутизація (Functions)
+│   │   ├── index.js          # Головний роутер
+│   │   ├── authRoutes.js
+│   │   ├── userRoutes.js
+│   │   ├── businessRoutes.js
+│   │   ├── websiteRoutes.js
+│   │   ├── qrcodeRoutes.js
+│   │   ├── analyticsRoutes.js
+│   │   ├── requestRoutes.js
+│   │   └── subscriptionRoutes.js (для майбутнього)
+│   │
+│   ├── middleware/           # Middleware функції (Functions)
+│   │   ├── authMiddleware.js         # Перевірка JWT
+│   │   ├── errorMiddleware.js        # Обробка помилок
+│   │   ├── validateMiddleware.js     # Загальна валідація
+│   │   ├── rateLimitMiddleware.js    # Rate limiting
+│   │   ├── corsMiddleware.js         # CORS налаштування
+│   │   └── uploadMiddleware.js       # Multer для файлів
+│   │
+│   ├── validators/           # Валідація даних (Functions)
+│   │   ├── authValidator.js
+│   │   ├── businessValidator.js
+│   │   ├── websiteValidator.js
+│   │   ├── qrcodeValidator.js
+│   │   ├── requestValidator.js
+│   │   └── subscriptionValidator.js (для майбутнього)
+│   │
+│   ├── config/               # Конфігурація
+│   │   ├── database.js       # MongoDB connection
+│   │   ├── passport.js       # Google OAuth
+│   │   ├── hetzner.js        # Hetzner Object Storage (S3-compatible)
+│   │   ├── constants.js      # Константи (статуси, ролі, тарифи)
+│   │   └── swagger.js        # Swagger документація
+│   │
+│   ├── utils/                # Допоміжні функції (Functions)
+│   │   ├── logger.js         # Winston logger
+│   │   ├── slugGenerator.js  # Генерація slug
+│   │   ├── qrGenerator.js    # Генерація QR кодів
+│   │   ├── s3Upload.js       # Завантаження в Hetzner Object Storage
+│   │   ├── emailSender.js    # Відправка email (для майбутнього)
+│   │   ├── dateHelpers.js    # Робота з датами
+│   │   ├── errorHandler.js   # Обробка помилок
+│   │   └── responseFormatter.js # Форматування відповідей
+│   │
+│   └── app.js                # Express setup
+│
+├── tests/
+│   ├── unit/                 # Unit тести
+│   ├── integration/          # Integration тести
+│   └── e2e/                  # End-to-end тести
+│
+├── public/
+│   ├── uploads/              # Завантажені файли
+│   │   ├── logos/            # Логотипи бізнесів
+│   │   ├── covers/           # Обкладинки сайтів
+│   │   └── products/         # Фото товарів
+│   └── qrcodes/              # Згенеровані QR коди
+│
+├── data/
+│   ├── seeds/                # Seed дані для розробки
+│   └── migrations/           # Міграції БД (за необхідності)
+│
+├── logs/                     # Лог файли
+│   ├── error.log
+│   ├── combined.log
+│   └── access.log
+│
+├── server.js                 # Entry point
+├── .env                      # Змінні оточення
+├── .env.example              # Приклад .env
+├── .gitignore
+├── .eslintrc.js
+├── .prettierrc
+├── package.json
+├── README.md
+└── swagger.yaml              # API документація
+```
+
+---
+
+## 3. MongoDB Схеми (Models)
+
+### 3.1 User (Користувач)
+
+```javascript
+{
+  _id: ObjectId,
+  googleId: String,                    // Google OAuth ID
+  email: String,                       // required, unique
+  name: String,                        // required
+  avatar: String,                      // URL аватара з Google
+  
+  // Реферальна система (для майбутнього)
+  referralCode: String,                // унікальний код (ALEX2024)
+  referredBy: ObjectId (ref: User),    // хто запросив
+  referralDiscount: Number,            // знижка від рефералів (0-20%)
+  
+  // Статистика (для майбутнього)
+  totalBusinesses: Number,             // кількість бізнесів
+  totalWebsites: Number,               // кількість сайтів
+  totalQRCodes: Number,                // кількість QR кодів
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.2 Business (Бізнес/Підприємство)
+
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: User),        // власник бізнесу
+  
+  // Основна інформація
+  name: String,                        // required (Ресторан "Балувана Галя")
+  slug: String,                        // required, unique (restaurant-galya)
+  description: String,                 // короткий опис
+  logo: String,                        // URL логотипа
+  
+  // Статус
+  status: String,                      // enum: ['active', 'inactive', 'pending_payment']
+  
+  // Підписка (для майбутнього)
+  subscriptionId: ObjectId (ref: Subscription),
+  subscriptionStatus: String,          // enum: ['free', 'starter', 'pro', 'enterprise']
+  subscriptionExpiresAt: Date,
+  
+  // Оплата створення (для майбутнього)
+  creationFee: Number,                 // €10 або €7 (залежно від тарифу)
+  creationPaid: Boolean,               // чи оплачено створення
+  creationPaidAt: Date,
+  
+  // Лічильники (для оптимізації запитів)
+  websitesCount: Number,               // кількість сайтів
+  qrCodesCount: Number,                // кількість QR кодів
+  totalScans: Number,                  // загальна к-сть сканувань
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.3 Website (Сайт)
+
+```javascript
+{
+  _id: ObjectId,
+  businessId: ObjectId (ref: Business), // до якого бізнесу належить
+  
+  // Основна інформація
+  type: String,                        // enum: ['card', 'catalog', 'external']
+  slug: String,                        // для URL (restaurant-galya)
+  
+  // Дані для сайту-візитки
+  slogan: String,                      // слоган (для card/catalog)
+  description: String,                 // розширений опис
+  coverImage: String,                  // обкладинка сайту
+  
+  // Контакти
+  phone: String,
+  email: String,
+  instagram: String,                   // URL
+  facebook: String,                    // URL
+  telegram: String,                    // URL
+  
+  // Для зовнішніх сайтів
+  externalUrl: String,                 // якщо type = 'external'
+  analyticsEnabled: Boolean,           // чи підключено скрипт аналітики
+  
+  // Статус
+  status: String,                      // enum: ['active', 'inactive', 'draft']
+  
+  // SEO
+  metaTitle: String,
+  metaDescription: String,
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.4 Product (Товар для каталогу)
+
+```javascript
+{
+  _id: ObjectId,
+  websiteId: ObjectId (ref: Website),  // до якого сайту належить
+  
+  // Основна інформація
+  name: String,                        // required (Борщ український)
+  description: String,                 // опис товару
+  price: Number,                       // required (85.00)
+  currency: String,                    // default: 'UAH'
+  
+  // Зображення
+  image: String,                       // URL зображення товару
+  
+  // Статус
+  isAvailable: Boolean,                // чи доступний товар
+  order: Number,                       // порядок відображення
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.5 QRCode (QR код)
+
+```javascript
+{
+  _id: ObjectId,
+  businessId: ObjectId (ref: Business),
+  websiteId: ObjectId (ref: Website),  // до якого сайту веде
+  
+  // Основна інформація
+  name: String,                        // назва (Головне меню, Бізнес-ланч)
+  description: String,                 // опис призначення
+  
+  // Налаштування QR
+  targetUrl: String,                   // required (site.qrhub.online/restaurant-galya)
+  shortCode: String,                   // короткий код для редіректу (abc123)
+  
+  // Дизайн QR (для майбутнього)
+  logoUrl: String,                     // логотип в центрі QR
+  primaryColor: String,                // колір QR (#000000)
+  backgroundColor: String,             // фон (#FFFFFF)
+  
+  // Файл QR коду
+  qrImageUrl: String,                  // URL згенерованого QR
+  
+  // Статус
+  status: String,                      // enum: ['active', 'inactive', 'archived']
+  
+  // Статистика (кешована)
+  totalScans: Number,                  // загальна к-сть сканувань
+  uniqueScans: Number,                 // унікальні скани
+  lastScanAt: Date,                    // останнє сканування
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.6 QRScan (Сканування QR коду)
+
+```javascript
+{
+  _id: ObjectId,
+  qrCodeId: ObjectId (ref: QRCode),
+  businessId: ObjectId (ref: Business), // для швидкої агрегації
+  
+  // Дані сканування
+  scannedAt: Date,                     // required, default: Date.now
+  
+  // Геолокація
+  country: String,                     // країна
+  city: String,                        // місто
+  ipAddress: String,                   // IP адреса
+  
+  // Пристрій
+  device: String,                      // enum: ['iOS', 'Android', 'Desktop', 'Other']
+  browser: String,                     // Chrome, Safari, etc
+  os: String,                          // iOS 16, Android 13, etc
+  
+  // User Agent
+  userAgent: String,
+  
+  // Для відстеження унікальних сканувань
+  fingerprint: String,                 // хеш для визначення унікального користувача
+  
+  createdAt: Date
+}
+```
+
+### 3.7 Request (Заявка з форми/замовлення)
+
+```javascript
+{
+  _id: ObjectId,
+  businessId: ObjectId (ref: Business),
+  websiteId: ObjectId (ref: Website),
+  
+  // Тип заявки
+  type: String,                        // enum: ['contact', 'order']
+  
+  // Контактні дані клієнта
+  customerName: String,                // required
+  customerPhone: String,               // required
+  customerEmail: String,
+  message: String,                     // для contact форм
+  
+  // Для замовлень
+  items: [{
+    productId: ObjectId (ref: Product),
+    productName: String,               // дублюємо на випадок видалення товару
+    quantity: Number,
+    price: Number
+  }],
+  totalAmount: Number,                 // загальна сума замовлення
+  currency: String,
+  
+  // Статус
+  status: String,                      // enum: ['new', 'in_progress', 'completed', 'cancelled']
+  
+  // Джерело
+  source: String,                      // enum: ['qr_code', 'direct', 'referral']
+  qrCodeId: ObjectId (ref: QRCode),    // якщо через QR
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.8 Subscription (Підписка) - для майбутнього
+
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: User),
+  
+  // План
+  plan: String,                        // enum: ['free', 'starter', 'pro', 'enterprise']
+  status: String,                      // enum: ['active', 'cancelled', 'expired', 'trial']
+  
+  // Ціна
+  price: Number,                       // €5, €20, etc
+  currency: String,                    // EUR
+  billingCycle: String,                // enum: ['monthly', 'yearly']
+  
+  // Знижки
+  discount: Number,                    // знижка від рефералів (0-20%)
+  discountedPrice: Number,             // ціна зі знижкою
+  
+  // Ліміти плану
+  maxBusinesses: Number,               // -1 = unlimited
+  maxWebsitesPerBusiness: Number,      // 1, 3, -1
+  maxQRCodesPerWebsite: Number,        // 1, 5, -1
+  
+  // Дати
+  startDate: Date,
+  endDate: Date,
+  nextBillingDate: Date,
+  trialEndsAt: Date,
+  cancelledAt: Date,
+  
+  // Платіжні дані
+  stripeSubscriptionId: String,
+  stripeCustomerId: String,
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.9 Payment (Платіж) - для майбутнього
+
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: User),
+  subscriptionId: ObjectId (ref: Subscription),
+  businessId: ObjectId (ref: Business),  // якщо це оплата за створення бізнесу
+  
+  // Тип платежу
+  type: String,                        // enum: ['subscription', 'business_creation', 'domain', 'custom_development']
+  
+  // Сума
+  amount: Number,                      // €10.00
+  currency: String,                    // EUR
+  
+  // Статус
+  status: String,                      // enum: ['pending', 'succeeded', 'failed', 'refunded']
+  
+  // Платіжна система
+  provider: String,                    // enum: ['stripe', 'paypal']
+  providerPaymentId: String,           // ID транзакції в Stripe/PayPal
+  
+  // Деталі
+  description: String,                 // опис платежу
+  receiptUrl: String,                  // URL чеку
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+### 3.10 Referral (Реферальна система) - для майбутнього
+
+```javascript
+{
+  _id: ObjectId,
+  referrerId: ObjectId (ref: User),    // хто запросив
+  referredUserId: ObjectId (ref: User), // кого запросили
+  
+  // Статус
+  status: String,                      // enum: ['pending', 'active', 'inactive', 'expired']
+  
+  // Умови активації
+  hasCreatedBusiness: Boolean,         // чи створив бізнес
+  hasPaidSubscription: Boolean,        // чи оплатив підписку
+  subscriptionMonths: Number,          // скільки місяців оплачено
+  
+  // Нагорода реферера
+  discountPercentage: Number,          // знижка (10%, 15%, 20%)
+  
+  // Дати
+  activatedAt: Date,                   // коли реферал став активним
+  expiredAt: Date,                     // коли закінчується
+  
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+---
+
+## 4. API Endpoints (MVP)
+
+### 4.1 Authentication (`/api/auth`)
+
+```
+POST   /api/auth/google          # Google OAuth login/register
+GET    /api/auth/google/callback # Google OAuth callback
+POST   /api/auth/logout          # Logout
+GET    /api/auth/me              # Get current user
+```
+
+### 4.2 Users (`/api/users`)
+
+```
+GET    /api/users/profile        # Get user profile
+PATCH  /api/users/profile        # Update user profile
+```
+
+### 4.3 Businesses (`/api/businesses`)
+
+```
+GET    /api/businesses           # Get all user businesses
+GET    /api/businesses/:id       # Get business by ID
+POST   /api/businesses           # Create business (4-step wizard)
+PATCH  /api/businesses/:id       # Update business
+DELETE /api/businesses/:id       # Delete business
+```
+
+### 4.4 Websites (`/api/websites`)
+
+```
+GET    /api/websites                      # Get all websites for user
+GET    /api/websites/:id                  # Get website by ID
+GET    /api/websites/business/:businessId # Get websites by business
+POST   /api/websites                      # Create website (within business creation)
+PATCH  /api/websites/:id                  # Update website
+DELETE /api/websites/:id                  # Delete website
+
+# Products (для каталогів)
+GET    /api/websites/:id/products         # Get all products
+POST   /api/websites/:id/products         # Add product
+PATCH  /api/websites/:id/products/:productId  # Update product
+DELETE /api/websites/:id/products/:productId  # Delete product
+```
+
+### 4.5 QR Codes (`/api/qrcodes`)
+
+```
+GET    /api/qrcodes                       # Get all QR codes for user
+GET    /api/qrcodes/:id                   # Get QR code by ID
+GET    /api/qrcodes/business/:businessId  # Get QR codes by business
+POST   /api/qrcodes                       # Create QR code (auto in business creation)
+PATCH  /api/qrcodes/:id                   # Update QR code
+DELETE /api/qrcodes/:id                   # Delete QR code
+GET    /api/qrcodes/:id/download          # Download QR image
+```
+
+### 4.6 Analytics (`/api/analytics`)
+
+```
+GET    /api/analytics/qrcode/:id          # QR code analytics
+GET    /api/analytics/business/:id        # Business analytics
+GET    /api/analytics/dashboard           # User dashboard stats
+```
+
+### 4.7 QR Scans (Public - без авторизації)
+
+```
+GET    /s/:shortCode                      # Redirect + track scan
+```
+
+### 4.8 Requests (Заявки)
+
+```
+GET    /api/requests                      # Get all requests for user
+GET    /api/requests/:id                  # Get request by ID
+GET    /api/requests/business/:businessId # Get requests by business
+PATCH  /api/requests/:id                  # Update request status
+DELETE /api/requests/:id                  # Delete request
+
+# Public endpoint для відправки заявки
+POST   /api/public/requests               # Submit request from website
+```
+
+### 4.9 Public Websites (без авторизації)
+
+```
+GET    /api/public/websites/:slug         # Get website by slug для SSR
+GET    /api/public/websites/:slug/products # Get products для каталогу
+```
+
+---
+
+## 5. Основні Flow для MVP
+
+### 5.1 Реєстрація через Google
+
+```
+1. Frontend → Натискання "Login with Google"
+2. Redirect → Google OAuth
+3. Google Callback → Backend /api/auth/google/callback
+4. AuthService.googleAuth(googleProfile):
+   - Перевіряє чи є User з таким googleId
+   - Якщо ні → створює нового User
+   - Якщо так → оновлює lastLogin
+   - Генерує JWT token
+5. Response → { success: true, token, user }
+6. Frontend → Зберігає token в localStorage
+```
+
+### 5.2 Створення бізнесу (4-step wizard)
+
+```
+Frontend відправляє 1 POST запит з усіма даними:
+
+POST /api/businesses
+Body: {
+  // Step 1
+  name: "Ресторан Балувана Галя",
+  description: "Українська кухня",
+  logo: File,
+  
+  // Step 2
+  website: {
+    type: "catalog",
+    slogan: "Справжні смаки України",
+    description: "...",
+    coverImage: File,
+    phone: "+380...",
+    email: "...",
+    instagram: "..."
+  },
+  
+  // Step 3 (якщо catalog)
+  products: [
+    { name: "Борщ", price: 85, description: "...", image: File },
+    // ...
+  ]
+}
+
+Backend Flow:
+1. BusinessController.create() → отримує req.body + files
+2. Валідація через businessValidator
+3. BusinessService.create():
+   a) Створює Business
+   b) Завантажує logo в Cloudinary
+   c) Генерує slug (restaurant-galya)
+   d) Створює Website
+   e) Завантажує coverImage в Cloudinary
+   f) Якщо catalog → створює Products
+   g) Створює QRCode автоматично
+   h) Генерує QR image
+4. Response → { success: true, data: { business, website, qrCode } }
+```
+
+### 5.3 Сканування QR коду
+
+```
+1. Користувач сканує QR → redirect на /s/:shortCode
+2. Backend:
+   GET /s/:shortCode
+   - Знаходить QRCode по shortCode
+   - Створює QRScan запис:
+     * Визначає країну/місто з IP (через ip-api.com)
+     * Парсить User-Agent → device, browser, os
+     * Генерує fingerprint для відстеження унікальності
+   - Інкрементить QRCode.totalScans
+   - Redirect 302 → targetUrl (site.qrhub.online/restaurant-galya)
+```
+
+### 5.4 Відправка заявки з сайту
+
+```
+Frontend (публічний сайт):
+POST /api/public/requests
+Body: {
+  websiteSlug: "restaurant-galya",
+  type: "contact" або "order",
+  customerName: "...",
+  customerPhone: "...",
+  customerEmail: "...",
+  message: "...",
+  items: [...] // якщо order
+}
+
+Backend:
+1. RequestController.createPublic()
+2. RequestService.create():
+   - Знаходить Website по slug
+   - Створює Request
+   - (Для майбутнього: відправляє email власнику)
+3. Response → { success: true }
+```
+
+---
+
+## 6. Middleware та безпека
+
+### 6.1 Authentication Middleware
+
+```javascript
+// authMiddleware.js
+const jwt = require('jsonwebtoken');
+
+function authMiddleware(req, res, next) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Необхідна авторизація' 
+    });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.userId = decoded.userId;
+    next();
+  } catch (error) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Невалідний токен' 
+    });
+  }
+}
+```
+
+### 6.2 Rate Limiting
+
+```javascript
+// rateLimitMiddleware.js
+const rateLimit = require('express-rate-limit');
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 хвилин
+  max: 100, // 100 запитів
+  message: { 
+    success: false, 
+    message: 'Забагато запитів, спробуйте пізніше' 
+  }
+});
+```
+
+### 6.3 Error Handling
+
+```javascript
+// errorMiddleware.js
+function errorMiddleware(err, req, res, next) {
+  console.error(err);
+  
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Внутрішня помилка сервера';
+  
+  res.status(statusCode).json({
+    success: false,
+    message: message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+  });
+}
+```
+
+---
+
+## 7. Змінні оточення (.env)
+
+```env
+# Server
+NODE_ENV=development
+PORT=5000
+API_URL=http://localhost:5000
+
+# Frontend URL
+FRONTEND_URL=http://localhost:3000
+SITE_URL=http://site.localhost:3000
+
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017/qrhub
+MONGODB_URI_TEST=mongodb://localhost:27017/qrhub_test
+
+# JWT
+JWT_SECRET=your-super-secret-jwt-key-change-this
+JWT_EXPIRES_IN=7d
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
+
+# Hetzner Object Storage (S3-compatible)
+HETZNER_S3_ENDPOINT=https://fsn1.your-objectstorage.com
+HETZNER_S3_ACCESS_KEY=your-access-key
+HETZNER_S3_SECRET_KEY=your-secret-key
+HETZNER_S3_BUCKET=qrhub-storage
+HETZNER_S3_REGION=eu-central-1
+HETZNER_CDN_URL=https://cdn.qrhub.online
+
+# Stripe (для майбутнього)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Email (для майбутнього)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+EMAIL_FROM=noreply@qrhub.online
+
+# Redis (для майбутнього)
+REDIS_URL=redis://localhost:6379
+
+# Sentry (для моніторингу помилок)
+SENTRY_DSN=https://...
+```
+
+---
+
+## 8. Пріоритети розробки MVP
+
+### Тиждень 1:
+- ✅ Налаштування проекту (Express, MongoDB, структура папок)
+- ✅ User Model + Google OAuth
+- ✅ Business Model + BusinessService
+- ✅ JWT authentication
+
+### Тиждень 2:
+- ✅ Website Model + WebsiteService
+- ✅ Product Model (для каталогів)
+- ✅ QRCode Model + генерація QR
+- ✅ Cloudinary інтеграція (завантаження фото)
+
+### Тиждень 3:
+- ✅ QRScan Model + tracking
+- ✅ Request Model + форми заявок
+- ✅ Analytics endpoints
+- ✅ Public API для сайтів
+
+### Тиждень 4:
+- ✅ Тестування всіх endpoints
+- ✅ Деплой на сервер
+- ✅ Swagger документація
+- ✅ Bug fixes
+
+---
+
+## 9. Майбутні фічі (після MVP)
+
+### Фаза 2 (Місяць 2-3):
+- Subscription Model + тарифні плани
+- Payment Model + Stripe інтеграція
+- Referral Model + реферальна програма
+- Email нотифікації (nodemailer)
+- Власні домени для сайтів
+- Розширена аналітика (теплові карти, воронки)
+
+### Фаза 3 (Місяць 4-6):
+- Множинні бізнеси/сайти/QR коди на тариф
+- Кастомна веб-розробка (заявки)
+- Експорт звітів (PDF, Excel)
+- Webhooks для інтеграцій
+- Admin panel
+
+---
+
+## 10. Константи системи
+
+```javascript
+// config/constants.js
+
+// Статуси бізнесу
+const BUSINESS_STATUS = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  PENDING_PAYMENT: 'pending_payment'
+};
+
+// Типи сайтів
+const WEBSITE_TYPE = {
+  CARD: 'card',           // Візитка
+  CATALOG: 'catalog',     // Каталог
+  EXTERNAL: 'external'    // Зовнішній сайт
+};
+
+// Статуси сайту
+const WEBSITE_STATUS = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  DRAFT: 'draft'
+};
+
+// Статуси QR коду
+const QR_STATUS = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+  ARCHIVED: 'archived'
+};
+
+// Типи пристроїв
+const DEVICE_TYPE = {
+  IOS: 'iOS',
+  ANDROID: 'Android',
+  DESKTOP: 'Desktop',
+  OTHER: 'Other'
+};
+
+// Типи заявок
+const REQUEST_TYPE = {
+  CONTACT: 'contact',     // Форма зв'язку
+  ORDER: 'order'          // Замовлення
+};
+
+// Статуси заявок
+const REQUEST_STATUS = {
+  NEW: 'new',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled'
+};
+
+// Тарифні плани (для майбутнього)
+const SUBSCRIPTION_PLAN = {
+  FREE: 'free',
+  STARTER: 'starter',
+  PRO: 'pro',
+  ENTERPRISE: 'enterprise'
+};
+
+// Статуси підписки
+const SUBSCRIPTION_STATUS = {
+  ACTIVE: 'active',
+  CANCELLED: 'cancelled',
+  EXPIRED: 'expired',
+  TRIAL: 'trial'
+};
+
+// Типи платежів
+const PAYMENT_TYPE = {
+  SUBSCRIPTION: 'subscription',
+  BUSINESS_CREATION: 'business_creation',
+  DOMAIN: 'domain',
+  CUSTOM_DEVELOPMENT: 'custom_development'
+};
+
+// Статуси платежів
+const PAYMENT_STATUS = {
+  PENDING: 'pending',
+  SUCCEEDED: 'succeeded',
+  FAILED: 'failed',
+  REFUNDED: 'refunded'
+};
+
+// Ліміти для MVP
+const MVP_LIMITS = {
+  MAX_BUSINESSES_PER_USER: 1,
+  MAX_WEBSITES_PER_BUSINESS: 1,
+  MAX_QR_CODES_PER_WEBSITE: 1,
+  MAX_PRODUCTS_PER_CATALOG: 50,
+  MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
+  ALLOWED_IMAGE_TYPES: ['image/jpeg', 'image/png', 'image/jpg']
+};
+
+// Ліміти для тарифів (для майбутнього)
+const PLAN_LIMITS = {
+  starter: {
+    maxBusinesses: -1,           // unlimited
+    maxWebsitesPerBusiness: 1,
+    maxQRCodesPerWebsite: 1,
+    price: 5,
+    creationFee: 10
+  },
+  pro: {
+    maxBusinesses: -1,           // unlimited
+    maxWebsitesPerBusiness: 3,
+    maxQRCodesPerWebsite: 5,
+    price: 20,
+    creationFee: 7
+  },
+  enterprise: {
+    maxBusinesses: -1,           // unlimited
+    maxWebsitesPerBusiness: -1,  // unlimited
+    maxQRCodesPerWebsite: -1,    // unlimited
+    price: 'custom',
+    creationFee: 0
+  }
+};
+
+module.exports = {
+  BUSINESS_STATUS,
+  WEBSITE_TYPE,
+  WEBSITE_STATUS,
+  QR_STATUS,
+  DEVICE_TYPE,
+  REQUEST_TYPE,
+  REQUEST_STATUS,
+  SUBSCRIPTION_PLAN,
+  SUBSCRIPTION_STATUS,
+  PAYMENT_TYPE,
+  PAYMENT_STATUS,
+  MVP_LIMITS,
+  PLAN_LIMITS
+};
+```
+
+---
+
+## 11. Приклади Controllers
+
+### 11.1 BusinessController.js
+
+```javascript
+const BusinessService = require('../services/BusinessService');
+const responseFormatter = require('../utils/responseFormatter');
+
+class BusinessController {
+  constructor() {
+    this.businessService = new BusinessService();
+  }
+
+  // GET /api/businesses
+  async getAllBusinesses(req, res, next) {
+    try {
+      const userId = req.userId;
+      const businesses = await this.businessService.getUserBusinesses(userId);
+      
+      return responseFormatter.success(res, 'Бізнеси успішно отримані', businesses);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /api/businesses/:id
+  async getBusinessById(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+      
+      const business = await this.businessService.getBusinessById(id, userId);
+      
+      return responseFormatter.success(res, 'Бізнес успішно отриманий', business);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // POST /api/businesses
+  async createBusiness(req, res, next) {
+    try {
+      const userId = req.userId;
+      const businessData = req.body;
+      const files = req.files; // multer files
+      
+      const result = await this.businessService.createBusiness(
+        userId, 
+        businessData, 
+        files
+      );
+      
+      return responseFormatter.success(
+        res, 
+        'Бізнес успішно створено', 
+        result,
+        201
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // PATCH /api/businesses/:id
+  async updateBusiness(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+      const updateData = req.body;
+      const files = req.files;
+      
+      const business = await this.businessService.updateBusiness(
+        id, 
+        userId, 
+        updateData, 
+        files
+      );
+      
+      return responseFormatter.success(res, 'Бізнес успішно оновлено', business);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // DELETE /api/businesses/:id
+  async deleteBusiness(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+      
+      await this.businessService.deleteBusiness(id, userId);
+      
+      return responseFormatter.success(res, 'Бізнес успішно видалено');
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+module.exports = BusinessController;
+```
+
+### 11.2 AnalyticsController.js
+
+```javascript
+const AnalyticsService = require('../services/AnalyticsService');
+const responseFormatter = require('../utils/responseFormatter');
+
+class AnalyticsController {
+  constructor() {
+    this.analyticsService = new AnalyticsService();
+  }
+
+  // GET /api/analytics/qrcode/:id
+  async getQRCodeAnalytics(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+      const { startDate, endDate } = req.query;
+      
+      const analytics = await this.analyticsService.getQRCodeAnalytics(
+        id, 
+        userId,
+        { startDate, endDate }
+      );
+      
+      return responseFormatter.success(
+        res, 
+        'Аналітика QR коду отримана', 
+        analytics
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /api/analytics/business/:id
+  async getBusinessAnalytics(req, res, next) {
+    try {
+      const { id } = req.params;
+      const userId = req.userId;
+      const { startDate, endDate } = req.query;
+      
+      const analytics = await this.analyticsService.getBusinessAnalytics(
+        id, 
+        userId,
+        { startDate, endDate }
+      );
+      
+      return responseFormatter.success(
+        res, 
+        'Аналітика бізнесу отримана', 
+        analytics
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /api/analytics/dashboard
+  async getDashboardStats(req, res, next) {
+    try {
+      const userId = req.userId;
+      
+      const stats = await this.analyticsService.getDashboardStats(userId);
+      
+      return responseFormatter.success(
+        res, 
+        'Статистика dashboard отримана', 
+        stats
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+module.exports = AnalyticsController;
+```
+
+---
+
+## 12. Приклади Services
+
+### 12.1 BusinessService.js
+
+```javascript
+const Business = require('../models/Business');
+const Website = require('../models/Website');
+const QRCode = require('../models/QRCode');
+const WebsiteService = require('./WebsiteService');
+const QRCodeService = require('./QRCodeService');
+const slugGenerator = require('../utils/slugGenerator');
+const s3Upload = require('../utils/s3Upload');
+const { MVP_LIMITS } = require('../config/constants');
+
+class BusinessService {
+  constructor() {
+    this.websiteService = new WebsiteService();
+    this.qrCodeService = new QRCodeService();
+  }
+
+  async getUserBusinesses(userId) {
+    const businesses = await Business.find({ userId })
+      .populate('userId', 'name email')
+      .sort({ createdAt: -1 });
+    
+    return businesses;
+  }
+
+  async getBusinessById(businessId, userId) {
+    const business = await Business.findOne({ 
+      _id: businessId, 
+      userId 
+    }).populate('userId', 'name email');
+    
+    if (!business) {
+      throw new Error('Бізнес не знайдено');
+    }
+    
+    return business;
+  }
+
+  async createBusiness(userId, businessData, files) {
+    // Перевірка ліміту для MVP
+    const existingBusinesses = await Business.countDocuments({ userId });
+    if (existingBusinesses >= MVP_LIMITS.MAX_BUSINESSES_PER_USER) {
+      throw new Error('Досягнуто ліміт кількості бізнесів для MVP (1)');
+    }
+
+    // Генерація slug
+    const slug = await this.generateUniqueSlug(businessData.name);
+
+    // Завантаження logo в Hetzner Object Storage
+    let logoUrl = null;
+    if (files?.logo) {
+      logoUrl = await s3Upload(files.logo[0], 'logos');
+    }
+
+    // Створення бізнесу
+    const business = await Business.create({
+      userId,
+      name: businessData.name,
+      slug,
+      description: businessData.description,
+      logo: logoUrl,
+      status: 'active', // В MVP одразу активний
+      subscriptionStatus: 'free',
+      websitesCount: 1,
+      qrCodesCount: 1,
+      totalScans: 0
+    });
+
+    // Створення сайту
+    const website = await this.websiteService.createWebsite(
+      business._id, 
+      businessData.website, 
+      files,
+      slug
+    );
+
+    // Створення QR коду автоматично
+    const qrCode = await this.qrCodeService.createQRCode(
+      business._id,
+      website._id,
+      {
+        name: 'Головний QR код',
+        description: 'Автоматично згенерований QR код'
+      }
+    );
+
+    return {
+      business,
+      website,
+      qrCode
+    };
+  }
+
+  async updateBusiness(businessId, userId, updateData, files) {
+    const business = await this.getBusinessById(businessId, userId);
+
+    // Оновлення logo якщо є
+    if (files?.logo) {
+      updateData.logo = await s3Upload(files.logo[0], 'logos');
+    }
+
+    // Оновлення slug якщо змінилась назва
+    if (updateData.name && updateData.name !== business.name) {
+      updateData.slug = await this.generateUniqueSlug(updateData.name);
+    }
+
+    Object.assign(business, updateData);
+    await business.save();
+
+    return business;
+  }
+
+  async deleteBusiness(businessId, userId) {
+    const business = await this.getBusinessById(businessId, userId);
+
+    // Видалення всіх пов'язаних сайтів
+    await Website.deleteMany({ businessId });
+
+    // Видалення всіх QR кодів
+    await QRCode.deleteMany({ businessId });
+
+    // Видалення бізнесу
+    await business.deleteOne();
+
+    return true;
+  }
+
+  async generateUniqueSlug(name) {
+    let slug = slugGenerator(name);
+    let counter = 1;
+
+    while (await Business.findOne({ slug })) {
+      slug = `${slugGenerator(name)}-${counter}`;
+      counter++;
+    }
+
+    return slug;
+  }
+}
+
+module.exports = BusinessService;
+```
+
+### 12.2 AnalyticsService.js
+
+```javascript
+const QRCode = require('../models/QRCode');
+const QRScan = require('../models/QRScan');
+const Business = require('../models/Business');
+const Request = require('../models/Request');
+
+class AnalyticsService {
+  async getQRCodeAnalytics(qrCodeId, userId, { startDate, endDate }) {
+    // Перевірка доступу
+    const qrCode = await QRCode.findById(qrCodeId).populate('businessId');
+    if (!qrCode || qrCode.businessId.userId.toString() !== userId) {
+      throw new Error('QR код не знайдено');
+    }
+
+    const dateFilter = this.buildDateFilter(startDate, endDate);
+
+    // Загальна статистика
+    const totalScans = await QRScan.countDocuments({
+      qrCodeId,
+      ...dateFilter
+    });
+
+    const uniqueScans = await QRScan.distinct('fingerprint', {
+      qrCodeId,
+      ...dateFilter
+    });
+
+    // Скани по днях тижня
+    const scansByDay = await this.getScansByDayOfWeek(qrCodeId, dateFilter);
+
+    // Скани по країнах
+    const scansByCountry = await QRScan.aggregate([
+      { $match: { qrCodeId: qrCode._id, ...dateFilter } },
+      { $group: { _id: '$country', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 }
+    ]);
+
+    // Скани по пристроях
+    const scansByDevice = await QRScan.aggregate([
+      { $match: { qrCodeId: qrCode._id, ...dateFilter } },
+      { $group: { _id: '$device', count: { $sum: 1 } } },
+      { $sort: { count: -1 } }
+    ]);
+
+    return {
+      totalScans,
+      uniqueScans: uniqueScans.length,
+      scansByDay,
+      scansByCountry,
+      scansByDevice,
+      qrCode: {
+        id: qrCode._id,
+        name: qrCode.name,
+        status: qrCode.status
+      }
+    };
+  }
+
+  async getBusinessAnalytics(businessId, userId, { startDate, endDate }) {
+    // Перевірка доступу
+    const business = await Business.findOne({ _id: businessId, userId });
+    if (!business) {
+      throw new Error('Бізнес не знайдено');
+    }
+
+    const dateFilter = this.buildDateFilter(startDate, endDate);
+
+    // Всі QR коди бізнесу
+    const qrCodes = await QRCode.find({ businessId });
+    const qrCodeIds = qrCodes.map(qr => qr._id);
+
+    // Загальна статистика
+    const totalScans = await QRScan.countDocuments({
+      businessId,
+      ...dateFilter
+    });
+
+    const totalRequests = await Request.countDocuments({
+      businessId,
+      ...dateFilter
+    });
+
+    // Скани по датах
+    const scansByDate = await QRScan.aggregate([
+      { $match: { businessId: business._id, ...dateFilter } },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$scannedAt' } },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    return {
+      business: {
+        id: business._id,
+        name: business.name,
+        slug: business.slug
+      },
+      totalScans,
+      totalRequests,
+      qrCodesCount: qrCodes.length,
+      scansByDate
+    };
+  }
+
+  async getDashboardStats(userId) {
+    // Підрахунок всього
+    const totalBusinesses = await Business.countDocuments({ userId });
+    const totalWebsites = await Business.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, total: { $sum: '$websitesCount' } } }
+    ]);
+    const totalQRCodes = await Business.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, total: { $sum: '$qrCodesCount' } } }
+    ]);
+    const totalScans = await Business.aggregate([
+      { $match: { userId } },
+      { $group: { _id: null, total: { $sum: '$totalScans' } } }
+    ]);
+
+    // Останні скани (7 днів)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const businesses = await Business.find({ userId });
+    const businessIds = businesses.map(b => b._id);
+
+    const recentScans = await QRScan.countDocuments({
+      businessId: { $in: businessIds },
+      scannedAt: { $gte: sevenDaysAgo }
+    });
+
+    return {
+      totalBusinesses,
+      totalWebsites: totalWebsites[0]?.total || 0,
+      totalQRCodes: totalQRCodes[0]?.total || 0,
+      totalScans: totalScans[0]?.total || 0,
+      recentScans // за останні 7 днів
+    };
+  }
+
+  async getScansByDayOfWeek(qrCodeId, dateFilter) {
+    const scans = await QRScan.aggregate([
+      { $match: { qrCodeId, ...dateFilter } },
+      {
+        $group: {
+          _id: { $dayOfWeek: '$scannedAt' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    // Мапінг 1-7 → Пн-Нд
+    const dayNames = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    return scans.map(item => ({
+      day: dayNames[item._id - 1],
+      count: item.count
+    }));
+  }
+
+  buildDateFilter(startDate, endDate) {
+    const filter = {};
+    
+    if (startDate || endDate) {
+      filter.scannedAt = {};
+      if (startDate) filter.scannedAt.$gte = new Date(startDate);
+      if (endDate) filter.scannedAt.$lte = new Date(endDate);
+    }
+
+    return filter;
+  }
+}
+
+module.exports = AnalyticsService;
+```
+
+---
+
+## 13. Utilities
+
+### 13.1 slugGenerator.js
+
+```javascript
+const transliterate = require('transliteration').transliterate;
+
+function slugGenerator(text) {
+  return transliterate(text)
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, '')     // Видаляємо спецсимволи
+    .replace(/\s+/g, '-')          // Пробіли → дефіси
+    .replace(/-+/g, '-')           // Подвійні дефіси → один
+    .trim();
+}
+
+module.exports = slugGenerator;
+
+// Приклад:
+// "Ресторан Балувана Галя" → "restoran-baluvana-galya"
+```
+
+### 13.2 qrGenerator.js
+
+```javascript
+const QRCode = require('qrcode');
+const s3Upload = require('./s3Upload');
+const path = require('path');
+const fs = require('fs').promises;
+const os = require('os');
+
+async function generateQRCode(targetUrl, options = {}) {
+  const {
+    size = 500,
+    margin = 2,
+    errorCorrectionLevel = 'M',
+    color = {
+      dark: '#000000',
+      light: '#FFFFFF'
+    }
+  } = options;
+
+  try {
+    // Генеруємо QR як Buffer
+    const qrBuffer = await QRCode.toBuffer(targetUrl, {
+      width: size,
+      margin,
+      errorCorrectionLevel,
+      color
+    });
+
+    // Створюємо тимчасовий файл
+    const tempFilePath = path.join(os.tmpdir(), `qr-${Date.now()}.png`);
+    await fs.writeFile(tempFilePath, qrBuffer);
+
+    // Завантажуємо в Hetzner Object Storage
+    const file = {
+      path: tempFilePath,
+      mimetype: 'image/png',
+      originalname: `qr-${Date.now()}.png`
+    };
+    
+    const url = await s3Upload(file, 'qrcodes');
+
+    // Видаляємо тимчасовий файл
+    await fs.unlink(tempFilePath);
+
+    return url;
+  } catch (error) {
+    console.error('QR Code generation error:', error);
+    throw new Error('Помилка генерації QR коду');
+  }
+}
+
+module.exports = { generateQRCode };
+```
+
+### 13.3 s3Upload.js (Hetzner Object Storage)
+
+```javascript
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const fs = require('fs').promises;
+const path = require('path');
+const { nanoid } = require('nanoid');
+
+// Ініціалізація S3 клієнта для Hetzner Object Storage
+const s3Client = new S3Client({
+  endpoint: process.env.HETZNER_S3_ENDPOINT,
+  region: process.env.HETZNER_S3_REGION || 'eu-central-1',
+  credentials: {
+    accessKeyId: process.env.HETZNER_S3_ACCESS_KEY,
+    secretAccessKey: process.env.HETZNER_S3_SECRET_KEY,
+  },
+  forcePathStyle: true, // Важливо для S3-compatible storage
+});
+
+/**
+ * Завантажує файл в Hetzner Object Storage
+ * @param {Object} file - Файл з multer (req.file або req.files)
+ * @param {String} folder - Папка в bucket (logos, covers, products, qrcodes)
+ * @returns {String} - URL завантаженого файлу
+ */
+async function s3Upload(file, folder = '') {
+  try {
+    // Читаємо файл
+    const fileContent = await fs.readFile(file.path);
+    
+    // Генеруємо унікальне ім'я файлу
+    const fileExtension = path.extname(file.originalname);
+    const fileName = `${nanoid(16)}${fileExtension}`;
+    const fileKey = folder ? `${folder}/${fileName}` : fileName;
+
+    // Параметри завантаження
+    const uploadParams = {
+      Bucket: process.env.HETZNER_S3_BUCKET,
+      Key: fileKey,
+      Body: fileContent,
+      ContentType: file.mimetype,
+      ACL: 'public-read', // Публічний доступ
+    };
+
+    // Завантажуємо файл
+    const command = new PutObjectCommand(uploadParams);
+    await s3Client.send(command);
+
+    // Формуємо URL файлу
+    const cdnUrl = process.env.HETZNER_CDN_URL;
+    const fileUrl = cdnUrl 
+      ? `${cdnUrl}/${fileKey}`
+      : `${process.env.HETZNER_S3_ENDPOINT}/${process.env.HETZNER_S3_BUCKET}/${fileKey}`;
+
+    // Видаляємо тимчасовий файл
+    await fs.unlink(file.path);
+
+    return fileUrl;
+  } catch (error) {
+    console.error('S3 Upload Error:', error);
+    throw new Error('Помилка завантаження файлу в Object Storage');
+  }
+}
+
+/**
+ * Завантажує множинні файли
+ * @param {Array} files - Масив файлів
+ * @param {String} folder - Папка в bucket
+ * @returns {Array} - Масив URL завантажених файлів
+ */
+async function s3UploadMultiple(files, folder = '') {
+  const uploadPromises = files.map(file => s3Upload(file, folder));
+  return await Promise.all(uploadPromises);
+}
+
+module.exports = s3Upload;
+module.exports.s3UploadMultiple = s3UploadMultiple;
+```
+
+### 13.4 config/hetzner.js
+
+```javascript
+const { S3Client } = require('@aws-sdk/client-s3');
+
+// S3 Client для Hetzner Object Storage
+const s3Client = new S3Client({
+  endpoint: process.env.HETZNER_S3_ENDPOINT,
+  region: process.env.HETZNER_S3_REGION || 'eu-central-1',
+  credentials: {
+    accessKeyId: process.env.HETZNER_S3_ACCESS_KEY,
+    secretAccessKey: process.env.HETZNER_S3_SECRET_KEY,
+  },
+  forcePathStyle: true,
+});
+
+module.exports = s3Client;
+```
+
+```javascript
+class ResponseFormatter {
+  static success(res, message, data = null, statusCode = 200) {
+    const response = {
+      success: true,
+      message
+    };
+
+    if (data !== null) {
+      response.data = data;
+    }
+
+    return res.status(statusCode).json(response);
+  }
+
+  static error(res, message, statusCode = 400, errors = null) {
+    const response = {
+      success: false,
+      message
+    };
+
+    if (errors) {
+      response.errors = errors;
+    }
+
+    return res.status(statusCode).json(response);
+  }
+}
+
+module.exports = ResponseFormatter;
+```
+
+---
+
+## 14. Package.json dependencies
+
+```json
+{
+  "name": "qrhub-backend",
+  "version": "1.0.0",
+  "description": "QRHub Backend API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "test": "jest --watchAll --verbose",
+    "test:ci": "jest --ci",
+    "lint": "eslint src/**/*.js",
+    "format": "prettier --write \"src/**/*.js\""
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.0",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "compression": "^1.7.4",
+    
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    
+    "joi": "^17.11.0",
+    "express-validator": "^7.0.1",
+    "express-rate-limit": "^7.1.5",
+    
+    "multer": "^1.4.5-lts.1",
+    "@aws-sdk/client-s3": "^3.470.0",
+    
+    "qrcode": "^1.5.3",
+    "transliteration": "^2.3.5",
+    "nanoid": "^3.3.7",
+    
+    "ip-api-client": "^1.0.3",
+    "ua-parser-js": "^1.0.37",
+    
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3",
+    "eslint": "^8.55.0",
+    "prettier": "^3.1.1",
+    "@faker-js/faker": "^8.3.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}
+```
+
+---
+
+## 15. Важливі нотатки для розробки
+
+### 15.1 Безпека
+- ✅ Всі паролі хешуються через bcrypt (для майбутнього якщо буде email/password)
+- ✅ JWT токени з expiration
+- ✅ Helmet для HTTP headers
+- ✅ Rate limiting на всі endpoints
+- ✅ CORS тільки для дозволених доменів
+- ✅ Валідація всіх input даних через Joi
+
+### 15.2 Продуктивність
+- ✅ MongoDB indexes на часто використовувані поля (userId, slug, shortCode)
+- ✅ Populate тільки необхідні поля
+- ✅ Pagination для списків
+- ✅ Кешування (Redis для майбутнього)
+
+### 15.3 Логування
+- ✅ Winston для всіх логів
+- ✅ Окремі файли для errors та info
+- ✅ Rotation логів щодня
+- ✅ Structured logging (JSON format)
+
+### 15.4 Тестування
+- ✅ Unit тести для Services
+- ✅ Integration тести для API endpoints
+- ✅ Faker для тестових даних
+- ✅ MongoDB Memory Server для тестів
+
+---
+
+## 16. Деплой
+
+### Production Environment Variables:
+```env
+NODE_ENV=production
+PORT=5000
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/qrhub
+FRONTEND_URL=https://qrhub.online
+SITE_URL=https://site.qrhub.online
+JWT_SECRET=your-super-secure-production-secret
+# ... інші
+```
+
+### Рекомендації для деплою:
+- **Backend**: Heroku, Railway, DigitalOcean, AWS
+- **Database**: MongoDB Atlas
+- **File Storage**: Cloudinary
+- **Domain**: Cloudflare DNS
+- **Monitoring**: Sentry для errors, LogDNA для logs
+
+---
+
+## 17. Swagger документація (приклад)
+
+```yaml
+openapi: 3.0.0
+info:
+  title: QRHub API
+  version: 1.0.0
+  description: QRHub Backend API Documentation
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development
+  - url: https://api.qrhub.online/api
+    description: Production
+
+paths:
+  /auth/google:
+    post:
+      summary: Login with Google
+      tags: [Authentication]
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                      user:
+                        $ref: '#/components/schemas/User'
+
+  /businesses:
+    get:
+      summary: Get all user businesses
+      tags: [Businesses]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Business'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        avatar:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    
+    Business:
+      type: object
+      properties:
+        _id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type: string
+        logo:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, pending_payment]
+        createdAt:
+          type: string
+          format: date-time
+```
+
+---
+
+## Висновок
+
+Це повне ТЗ для бекенду QRHub з:
+- ✅ Чіткою структурою файлів згідно твоєї інструкції
+- ✅ Закладкою на майбутнє (підписки, платежі, реферали)
+- ✅ MVP функціоналом (Google OAuth, бізнеси, сайти, QR коди, аналітика)
+- ✅ Всіма необхідними моделями MongoDB
+- ✅ Прикладами Controllers та Services
+- ✅ Utilities та middleware
+- ✅ Безпекою та валідацією
+- ✅ Swagger документацією
+
+**Готовий до старту розробки!** 🚀
+
+---
+
+## 18. Чеклист для початку розробки
+
+### Крок 1: Ініціалізація проекту
+```bash
+mkdir qrhub-backend
+cd qrhub-backend
+npm init -y
+```
+
+### Крок 2: Встановлення залежностей
+```bash
+npm install express mongoose dotenv cors helmet morgan compression
+npm install passport passport-google-oauth20 jsonwebtoken bcryptjs
+npm install joi express-validator express-rate-limit
+npm install multer @aws-sdk/client-s3
+npm install qrcode transliteration nanoid
+npm install ip-api-client ua-parser-js
+npm install winston winston-daily-rotate-file
+
+npm install -D nodemon jest supertest eslint prettier @faker-js/faker
+```
+
+### Крок 3: Створення структури папок
+```bash
+mkdir -p src/{controllers,services,models,routes,middleware,validators,config,utils}
+mkdir -p tests/{unit,integration,e2e}
+mkdir -p public/{uploads/{logos,covers,products},qrcodes}
+mkdir -p data/{seeds,migrations}
+mkdir logs
+```
+
+### Крок 4: Створення базових файлів
+```bash
+touch server.js
+touch src/app.js
+touch .env .env.example
+touch .gitignore .eslintrc.js .prettierrc
+touch README.md
+```
+
+### Крок 5: Налаштування MongoDB
+- Створити акаунт на MongoDB Atlas
+- Створити кластер
+- Отримати connection string
+- Додати в .env
+
+### Крок 6: Налаштування Google OAuth
+- Перейти в Google Cloud Console
+- Створити проект
+- Налаштувати OAuth 2.0 Client ID
+- Додати credentials в .env
+
+### Крок 7: Налаштування Hetzner Object Storage
+- Створити проект на Hetzner Cloud
+- Створити Object Storage bucket
+- Отримати Access Key та Secret Key
+- Додати credentials в .env
+- Налаштувати CDN (опціонально)
+
+---
+
+## 19. Приклад .gitignore
+
+```gitignore
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Uploads
+public/uploads/
+public/qrcodes/
+
+# Testing
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build
+dist/
+build/
+
+# Temp
+tmp/
+temp/
+```
+
+---
+
+## 20. Приклад README.md початкового
+
+```markdown
+# QRHub Backend API
+
+Backend API для платформи QRHub - створення QR кодів, генерація сайтів та бізнес-аналітика.
+
+## 🚀 Технології
+
+- Node.js + Express
+- MongoDB + Mongoose
+- Google OAuth 2.0
+- JWT Authentication
+- Cloudinary (зберігання зображень)
+- QRCode generation
+
+## 📦 Встановлення
+
+```bash
+# Клонувати репозиторій
+git clone https://github.com/your-username/qrhub-backend.git
+cd qrhub-backend
+
+# Встановити залежності
+npm install
+
+# Створити .env файл
+cp .env.example .env
+
+# Заповнити змінні оточення в .env
+
+# Запустити в режимі розробки
+npm run dev
+```
+
+## 🔧 Налаштування
+
+### MongoDB Atlas
+1. Створіть акаунт на [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+2. Створіть новий кластер
+3. Отримайте connection string
+4. Додайте в .env як `MONGODB_URI`
+
+### Google OAuth
+1. Перейдіть в [Google Cloud Console](https://console.cloud.google.com)
+2. Створіть новий проект
+3. Увімкніть Google+ API
+4. Створіть OAuth 2.0 Client ID
+5. Додайте credentials в .env
+
+### Cloudinary
+1. Зареєструйтесь на [Cloudinary](https://cloudinary.com)
+2. Отримайте API keys з Dashboard
+3. Додайте в .env
+
+## 📁 Структура проекту
+
+```
+src/
+├── controllers/    # HTTP обробка
+├── services/       # Бізнес-логіка
+├── models/         # MongoDB схеми
+├── routes/         # API маршрути
+├── middleware/     # Middleware функції
+├── validators/     # Валідація даних
+├── config/         # Конфігурація
+└── utils/          # Допоміжні функції
+```
+
+## 🔑 API Endpoints
+
+### Authentication
+- `POST /api/auth/google` - Login з Google
+- `GET /api/auth/me` - Отримати поточного користувача
+
+### Businesses
+- `GET /api/businesses` - Список бізнесів
+- `POST /api/businesses` - Створити бізнес
+- `GET /api/businesses/:id` - Отримати бізнес
+- `PATCH /api/businesses/:id` - Оновити бізнес
+- `DELETE /api/businesses/:id` - Видалити бізнес
+
+### QR Codes
+- `GET /api/qrcodes` - Список QR кодів
+- `GET /api/qrcodes/:id` - Отримати QR код
+- `GET /api/qrcodes/:id/download` - Завантажити QR
+
+### Analytics
+- `GET /api/analytics/qrcode/:id` - Аналітика QR коду
+- `GET /api/analytics/business/:id` - Аналітика бізнесу
+- `GET /api/analytics/dashboard` - Загальна статистика
+
+## 🧪 Тестування
+
+```bash
+# Запустити всі тести
+npm test
+
+# Запустити з coverage
+npm run test:coverage
+```
+
+## 📝 Документація API
+
+Swagger документація доступна за адресою:
+- Development: `http://localhost:5000/api-docs`
+- Production: `https://api.qrhub.online/api-docs`
+
+## 🐛 Дебаг
+
+```bash
+# Запустити з детальними логами
+DEBUG=* npm run dev
+```
+
+## 📄 Ліцензія
+
+MIT
+
+## 👥 Автори
+
+- Олексій Петренко
+```
+
+---
+
+## 21. Порядок розробки (детальний)
+
+### День 1-2: Setup та базова конфігурація
+1. ✅ Ініціалізація проекту
+2. ✅ Встановлення всіх залежностей
+3. ✅ Налаштування ESLint та Prettier
+4. ✅ Створення структури папок
+5. ✅ Базова конфігурація Express (app.js)
+6. ✅ Підключення до MongoDB (config/database.js)
+7. ✅ Налаштування .env файлів
+8. ✅ Базовий error handling middleware
+
+### День 3-4: User та Authentication
+1. ✅ User Model
+2. ✅ Google OAuth конфігурація (config/passport.js)
+3. ✅ AuthController (login, logout, me)
+4. ✅ AuthService
+5. ✅ JWT генерація та верифікація
+6. ✅ authMiddleware
+7. ✅ Auth routes
+8. ✅ Тестування авторизації
+
+### День 5-7: Business Module
+1. ✅ Business Model
+2. ✅ BusinessController (CRUD)
+3. ✅ BusinessService
+4. ✅ businessValidator
+5. ✅ Business routes
+6. ✅ Slug generation utility
+7. ✅ Тестування Business endpoints
+
+### День 8-10: Website Module
+1. ✅ Website Model
+2. ✅ Product Model
+3. ✅ WebsiteController
+4. ✅ WebsiteService
+5. ✅ websiteValidator
+6. ✅ Multer middleware для завантаження файлів
+7. ✅ Hetzner Object Storage інтеграція (s3Upload utility)
+8. ✅ Website routes
+9. ✅ Тестування Website endpoints
+
+### День 11-13: QR Code Module
+1. ✅ QRCode Model
+2. ✅ QRCodeController
+3. ✅ QRCodeService
+4. ✅ QR generation utility (qrGenerator.js)
+5. ✅ Short code generation (nanoid)
+6. ✅ QRCode routes
+7. ✅ Download QR endpoint
+8. ✅ Тестування QR endpoints
+
+### День 14-16: Analytics та QR Tracking
+1. ✅ QRScan Model
+2. ✅ QRScan tracking endpoint (/s/:shortCode)
+3. ✅ IP геолокація (ip-api)
+4. ✅ User Agent parsing
+5. ✅ Fingerprint generation
+6. ✅ AnalyticsController
+7. ✅ AnalyticsService (агрегації)
+8. ✅ Analytics routes
+9. ✅ Тестування analytics
+
+### День 17-18: Requests Module
+1. ✅ Request Model
+2. ✅ RequestController
+3. ✅ RequestService
+4. ✅ Public request endpoint
+5. ✅ Request routes
+6. ✅ Тестування requests
+
+### День 19-20: Public API для сайтів
+1. ✅ Public website endpoint (по slug)
+2. ✅ Public products endpoint
+3. ✅ CORS налаштування для site.qrhub.online
+4. ✅ Rate limiting для public endpoints
+5. ✅ Тестування public API
+
+### День 21-23: Інтеграція всього разом
+1. ✅ Тестування повного flow створення бізнесу
+2. ✅ Тестування QR сканування та аналітики
+3. ✅ Оптимізація запитів до БД
+4. ✅ Додавання indexes в MongoDB
+5. ✅ Перевірка валідації на всіх endpoints
+
+### День 24-25: Документація та поліровка
+1. ✅ Swagger документація
+2. ✅ README.md
+3. ✅ Коментарі в коді
+4. ✅ Логування (Winston)
+5. ✅ Error handling поліровка
+
+### День 26-27: Тестування
+1. ✅ Unit тести для Services
+2. ✅ Integration тести для Controllers
+3. ✅ E2E тести для критичних flow
+4. ✅ Тестування на різних сценаріях
+
+### День 28-30: Деплой на Hetzner VPS
+1. ✅ Підготовка до production
+2. ✅ Environment variables для production
+3. ✅ Налаштування Hetzner VPS:
+   - Ubuntu 22.04 LTS
+   - Node.js 18+
+   - PM2 для process management
+   - Nginx як reverse proxy
+4. ✅ Налаштування MongoDB Atlas
+5. ✅ Налаштування Hetzner Object Storage
+6. ✅ SSL сертифікати (Let's Encrypt)
+7. ✅ Налаштування firewall (UFW)
+8. ✅ Моніторинг (PM2 + Sentry)
+9. ✅ Фінальне тестування на production
+
+---
+
+## 22. Важливі нотатки та best practices
+
+### Mongoose Best Practices:
+```javascript
+// ✅ Правильно: використовуємо lean() для read-only
+const users = await User.find().lean();
+
+// ✅ Правильно: select тільки потрібні поля
+const user = await User.findById(id).select('name email');
+
+// ✅ Правильно: populate тільки потрібні поля
+const business = await Business.findById(id)
+  .populate('userId', 'name email');
+
+// ❌ Неправильно: завантажуємо все
+const business = await Business.findById(id).populate('userId');
+```
+
+### Error Handling Best Practices:
+```javascript
+// ✅ Правильно: створюємо кастомні помилки
+class NotFoundError extends Error {
+  constructor(message) {
+    super(message);
+    this.statusCode = 404;
+    this.name = 'NotFoundError';
+  }
+}
+
+// ✅ Правильно: обробляємо в сервісах
+async getUserById(userId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new NotFoundError('Користувача не знайдено');
+  }
+  return user;
+}
+```
+
+### Validation Best Practices:
+```javascript
+// ✅ Правильно: створюємо reusable схеми
+const businessSchemas = {
+  create: Joi.object({
+    name: Joi.string().required().min(3).max(100),
+    description: Joi.string().max(500),
+    website: Joi.object({
+      type: Joi.string().valid('card', 'catalog').required(),
+      // ...
+    })
+  }),
+  
+  update: Joi.object({
+    name: Joi.string().min(3).max(100),
+    description: Joi.string().max(500)
+  })
+};
+```
+
+### Security Best Practices:
+```javascript
+// ✅ Завжди перевіряємо власника ресурсу
+async getBusinessById(businessId, userId) {
+  const business = await Business.findOne({ 
+    _id: businessId, 
+    userId // Важливо!
+  });
+  
+  if (!business) {
+    throw new NotFoundError('Бізнес не знайдено');
+  }
+  
+  return business;
+}
+
+// ✅ Не повертаємо sensitive дані
+const user = await User.findById(id).select('-password -googleId');
+```
+
+---
+
+## 23. Корисні команди для розробки
+
+```bash
+# Запустити сервер в dev режимі
+npm run dev
+
+# Запустити тести
+npm test
+
+# Запустити тести з coverage
+npm run test:coverage
+
+# Перевірити код на помилки
+npm run lint
+
+# Виправити ESLint помилки автоматично
+npm run lint -- --fix
+
+# Форматувати код
+npm run format
+
+# Переглянути MongoDB (через mongosh)
+mongosh "mongodb://localhost:27017/qrhub"
+
+# Очистити базу даних (development)
+npm run db:reset
+
+# Seed даними (development)
+npm run db:seed
+```
+
+---
+
+## 24. Приклади використання API
+
+### Створення бізнесу (curl):
+```bash
+curl -X POST http://localhost:5000/api/businesses \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ресторан Балувана Галя",
+    "description": "Українська кухня з домашнім затишком",
+    "website": {
+      "type": "catalog",
+      "slogan": "Справжні смаки України",
+      "description": "Детально розкажіть про ваш бізнес...",
+      "phone": "+380501234567",
+      "email": "info@galya-restaurant.com",
+      "instagram": "https://instagram.com/galya_restaurant"
+    },
+    "products": [
+      {
+        "name": "Борщ український",
+        "price": 85,
+        "description": "Традиційний український борщ..."
+      }
+    ]
+  }'
+```
+
+### Отримання аналітики (curl):
+```bash
+curl -X GET "http://localhost:5000/api/analytics/qrcode/QR_CODE_ID?startDate=2024-01-01&endDate=2024-12-31" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+---
+
+## 25. Troubleshooting
+
+### Проблема: Не можу підключитись до MongoDB
+**Рішення:**
+1. Перевірте connection string в .env
+2. Перевірте IP whitelist в MongoDB Atlas
+3. Перевірте чи правильний username/password
+4. Спробуйте підключитись через mongosh
+
+### Проблема: Google OAuth не працює
+**Рішення:**
+1. Перевірте GOOGLE_CLIENT_ID та GOOGLE_CLIENT_SECRET
+2. Перевірте Authorized redirect URIs в Google Console
+3. Перевірте чи додано правильний callback URL
+4. Очистіть cookies браузера
+
+### Проблема: Завантаження файлів не працює
+**Рішення:**
+1. Перевірте Hetzner Object Storage credentials
+2. Перевірте чи правильно вказано endpoint та bucket
+3. Перевірте розмір файлу (max 5MB)
+4. Перевірте формат файлу (jpg, png)
+5. Перевірте права доступу (ACL: public-read)
+6. Перевірте чи є права на папку tmp/ для тимчасових файлів
+7. Тестуйте завантаження через AWS CLI:
+   ```bash
+   aws s3 ls s3://qrhub-storage --endpoint-url=https://fsn1.your-objectstorage.com
+   ```
+
+### Проблема: QR код не генерується
+**Рішення:**
+1. Перевірте чи встановлений пакет qrcode
+2. Перевірте URL який передаєте
+3. Перевірте логи помилок
+4. Спробуйте згенерувати локально без Cloudinary
+
+---
+
+## Підсумок
+
+Це **повне технічне завдання** для бекенду QRHub з:
+
+✅ **Структурою згідно твоєї інструкції** (Layered Architecture)  
+✅ **MVP функціоналом** (готовий до розробки за 30 днів)  
+✅ **Закладкою на майбутнє** (підписки, платежі, реферали)  
+✅ **Детальними моделями** (10 MongoDB схем)  
+✅ **Прикладами коду** (Controllers, Services, Utils)  
+✅ **Безпекою та валідацією**  
+✅ **Документацією** (Swagger, README)  
+✅ **Чітким планом розробки** (покроковий 30-денний план)
+
+**Готовий до початку розробки!** 🚀
+
+Якщо потрібні додаткові деталі або уточнення - питай! 💪
