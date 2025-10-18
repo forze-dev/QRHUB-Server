@@ -1,36 +1,4 @@
----
-
-## 26. Hetzner VPS Деплой - Детальна інструкція
-
-### 26.1 Налаштування VPS
-
-```bash
-# 1. Створити VPS на Hetzner Cloud
-# - Виберіть Ubuntu 22.04 LTS
-# - Мінімум: CX11 (2GB RAM, 1 vCPU) для старту
-# - Рекомендовано: CPX21 (4GB RAM, 3 vCPU) для production
-# - Location: Falkenstein (FSN1) або Nuremberg (NBG1)
-
-# 2. Підключитись до VPS через SSH
-ssh root@YOUR_SERVER_IP
-
-# 3. Оновити систему
-apt update && apt upgrade -y
-
-# 4. Встановити Node.js 18+
-curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-apt install -y nodejs
-
-# 5. Встановити PM2
-npm install -g pm2
-
-# 6. Встановити Nginx
-apt install -y nginx
-
-# 7. Встановити Certbot для SSL
-apt install -y certbot python3-certbot-nginx
-
-# 8# QRHub Backend - Технічне завдання
+# QRHub Backend - Технічне завдання
 
 ## 1. Загальна інформація
 

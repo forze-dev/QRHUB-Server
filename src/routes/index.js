@@ -3,9 +3,8 @@
  * Головний роутер який об'єднує всі routes
  * 
  * Структура:
- * /api/auth       - Аутентифікація
- * /api/users      - Користувачі (для майбутнього)
- * /api/businesses - Бізнеси (для майбутнього)
+ * /api/auth       - Аутентифікація ✅
+ * /api/businesses - Бізнеси ✅
  * /api/websites   - Сайти (для майбутнього)
  * /api/qrcodes    - QR коди (для майбутнього)
  * /api/analytics  - Аналітика (для майбутнього)
@@ -14,8 +13,7 @@
 
 import express from 'express';
 import authRoutes from './authRoutes.js';
-// import userRoutes from './userRoutes.js';
-// import businessRoutes from './businessRoutes.js';
+import businessRoutes from './businessRoutes.js';
 // import websiteRoutes from './websiteRoutes.js';
 // import qrcodeRoutes from './qrcodeRoutes.js';
 // import analyticsRoutes from './analyticsRoutes.js';
@@ -55,10 +53,13 @@ router.get('/version', (req, res) => {
 router.use('/auth', authRoutes);
 
 // ============================================
+// BUSINESS ROUTES
+// ============================================
+router.use('/businesses', businessRoutes);
+
+// ============================================
 // FUTURE ROUTES (закоментовані поки не створені)
 // ============================================
-// router.use('/users', userRoutes);
-// router.use('/businesses', businessRoutes);
 // router.use('/websites', websiteRoutes);
 // router.use('/qrcodes', qrcodeRoutes);
 // router.use('/analytics', analyticsRoutes);

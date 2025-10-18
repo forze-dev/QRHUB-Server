@@ -220,6 +220,44 @@ export const isLimitReached = (current, limit) => {
 };
 
 // ============================================
+// BUSINESS-SPECIFIC CONSTANTS (додати до існуючих)
+// ============================================
+
+// Типи файлів для Business
+export const BUSINESS_FILE_TYPES = {
+    LOGO: {
+        ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'],
+        MAX_SIZE: 5 * 1024 * 1024, // 5MB
+        FOLDER: 'logos'
+    }
+};
+
+// Правила для slug
+export const SLUG_RULES = {
+    MIN_LENGTH: 3,
+    MAX_LENGTH: 100,
+    PATTERN: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, // тільки lowercase, цифри, дефіси
+    RESERVED_SLUGS: [
+        'api', 'admin', 'auth', 'login', 'logout', 'register',
+        'dashboard', 'settings', 'profile', 'help', 'support',
+        'about', 'contact', 'terms', 'privacy', 'new', 'edit'
+    ]
+};
+
+// Валідація контактів
+export const CONTACT_VALIDATION = {
+    PHONE: {
+        MIN_LENGTH: 10,
+        MAX_LENGTH: 15,
+        PATTERN: /^\+?[1-9]\d{1,14}$/ // E.164 format
+    },
+    EMAIL: {
+        PATTERN: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/
+    }
+};
+
+
+// ============================================
 // DEFAULT EXPORT
 // ============================================
 
@@ -245,5 +283,8 @@ export default {
     JWT,
     isValidStatus,
     getPlanLimits,
-    isLimitReached
+    isLimitReached,
+    BUSINESS_FILE_TYPES,
+    SLUG_RULES,
+    CONTACT_VALIDATION
 };

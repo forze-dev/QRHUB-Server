@@ -35,13 +35,38 @@ src/
 - ✅ **JWT токени** - генерація та верифікація
 - ✅ **authMiddleware** - захист роутів
 
+---
+
+### 🏢 Бізнеси (Business Module)
+- ✅ CRUD операції для бізнесів
+- ✅ Slug генерація (транслітерація кирилиці)
+- ✅ Завантаження logo у Hetzner S3
+- ✅ MVP-ліміт: 1 бізнес на користувача
+- ✅ Soft delete
+- ✅ Статистика бізнесу
+- ✅ Перевірка власника при всіх діях
+
+
 ### 📍 API Endpoints (готові)
+
+#### 🔐 Auth
 ```
-GET  /api/auth/google          - Початок OAuth flow
-GET  /api/auth/google/callback - Callback від Google
-GET  /api/auth/me              - Поточний користувач [AUTH]
-POST /api/auth/logout          - Вихід [AUTH]
-GET  /api/health               - Health check
+GET    /api/auth/google          
+GET    /api/auth/google/callback 
+GET    /api/auth/me                  [AUTH]
+POST   /api/auth/logout              [AUTH]
+POST   /api/auth/refresh             [PUBLIC]
+```
+
+#### 🏢 Business
+```
+GET    /api/businesses               [AUTH]
+GET    /api/businesses/:id           [AUTH]
+POST   /api/businesses               [AUTH]
+PATCH  /api/businesses/:id           [AUTH]
+DELETE /api/businesses/:id           [AUTH]
+GET    /api/businesses/:id/stats     [AUTH]
+GET    /api/businesses/slug/:slug    [PUBLIC]
 ```
 
 ### 🛠️ Інфраструктура
@@ -56,15 +81,7 @@ GET  /api/health               - Health check
 
 ## 📋 Наступні кроки (TODO)
 
-### 1️⃣ **Business Module** (пріоритет)
-- [ ] Business Model
-- [ ] BusinessService
-- [ ] BusinessController
-- [ ] businessRoutes
-- [ ] Slug generation
-- [ ] Logo upload (Hetzner S3)
-
-### 2️⃣ **Website Module**
+### 1️⃣ **Website Module** (пріоритет)
 - [ ] Website Model
 - [ ] Product Model (для каталогів)
 - [ ] WebsiteService
@@ -72,27 +89,27 @@ GET  /api/health               - Health check
 - [ ] websiteRoutes
 - [ ] Cover image upload
 
-### 3️⃣ **QR Code Module**
+### 2️⃣ **QR Code Module**
 - [ ] QRCode Model
 - [ ] QRCodeService (генерація QR)
 - [ ] QRCodeController
 - [ ] qrcodeRoutes
 - [ ] Інтеграція з Hetzner S3
 
-### 4️⃣ **Analytics Module**
+### 3️⃣ **Analytics Module**
 - [ ] QRScan Model
 - [ ] QRScan tracking endpoint
 - [ ] AnalyticsService (агрегація)
 - [ ] AnalyticsController
 - [ ] Геолокація + Device detection
 
-### 5️⃣ **Requests Module**
+### 4️⃣ **Requests Module**
 - [ ] Request Model
 - [ ] RequestService
 - [ ] RequestController
 - [ ] Public API для форм
 
-### 6️⃣ **Deploy & Production**
+### 5️⃣ **Deploy & Production**
 - [ ] Environment для production
 - [ ] Hetzner VPS setup
 - [ ] MongoDB Atlas
@@ -196,9 +213,9 @@ npm run dev
 
 ## 🎯 MVP Timeline
 
-- **Тиждень 1:** ✅ Auth Module (завершено)
-- **Тиждень 2:** Business + Website Modules
-- **Тиждень 3:** QRCode + Analytics Modules
+- **Тиждень 1:** ✅ Auth + Business Modules (завершено)
+- **Тиждень 2:** Website Modules + QRCode Modules
+- **Тиждень 3:** Analytics Modules
 - **Тиждень 4:** Testing + Deploy
 
 ---
