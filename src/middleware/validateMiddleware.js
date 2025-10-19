@@ -45,7 +45,18 @@ const validateMiddleware = (schema, source = 'body') => {
         }
 
         // Замінюємо оригінальні дані на валідовані (з правильними типами)
-        req[source] = value;
+        // Для query та params використовуємо Object.assign, бо вони read-only
+        if (source === 'query' || source === 'params') {
+            // Очищаємо старі значення
+            Object.keys(req[source]).forEach(key => {
+                delete req[source][key];
+            });
+            // Додаємо нові валідовані значення
+            Object.assign(req[source], value);
+        } else {
+            // Для body можна просто присвоїти
+            req[source] = value;
+        }
 
         next();
     };
