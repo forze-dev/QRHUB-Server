@@ -1,29 +1,26 @@
 /**
  * Main Router
- * Головний роутер який об'єднує всі routes
+ * Головний роутер для всіх API endpoints
  * 
- * Структура:
- * /api/auth       - Аутентифікація ✅
- * /api/businesses - Бізнеси ✅
- * /api/websites   - Сайти (для майбутнього)
- * /api/qrcodes    - QR коди (для майбутнього)
- * /api/analytics  - Аналітика (для майбутнього)
- * /api/requests   - Заявки (для майбутнього)
+ * Базовий шлях: /api
  */
 
 import express from 'express';
 import authRoutes from './authRoutes.js';
 import businessRoutes from './businessRoutes.js';
-// import websiteRoutes from './websiteRoutes.js';
-// import qrcodeRoutes from './qrcodeRoutes.js';
-// import analyticsRoutes from './analyticsRoutes.js';
-// import requestRoutes from './requestRoutes.js';
+import websiteRoutes from './websiteRoutes.js';
+import productRoutes from './productRoutes.js';
 
 const router = express.Router();
 
+// ============================================
+// HEALTH CHECK
+// ============================================
+
 /**
- * Health check endpoint
- * Перевірка що API працює
+ * @route   GET /api/health
+ * @desc    Health check endpoint
+ * @access  Public
  */
 router.get('/health', (req, res) => {
     res.status(200).json({
@@ -34,48 +31,58 @@ router.get('/health', (req, res) => {
     });
 });
 
-/**
- * API version info
- * Інформація про версію API
- */
-router.get('/version', (req, res) => {
-    res.status(200).json({
-        success: true,
-        version: '1.0.0',
-        apiName: 'QRHub API',
-        description: 'QR codes, websites and business analytics platform'
-    });
-});
+// ============================================
+// API ROUTES
+// ============================================
 
-// ============================================
-// AUTH ROUTES
-// ============================================
+/**
+ * Auth routes
+ * /api/auth/*
+ */
 router.use('/auth', authRoutes);
 
-// ============================================
-// BUSINESS ROUTES
-// ============================================
+/**
+ * Business routes
+ * /api/businesses/*
+ */
 router.use('/businesses', businessRoutes);
 
-// ============================================
-// FUTURE ROUTES (закоментовані поки не створені)
-// ============================================
-// router.use('/websites', websiteRoutes);
-// router.use('/qrcodes', qrcodeRoutes);
-// router.use('/analytics', analyticsRoutes);
-// router.use('/requests', requestRoutes);
+/**
+ * Website routes
+ * /api/websites/*
+ */
+router.use('/websites', websiteRoutes);
 
 /**
- * 404 handler для API routes
- * Якщо роут не знайдено
+ * Product routes
+ * /api/products/*
+ * /api/websites/:websiteId/products (публічний)
  */
-router.use((req, res) => {
+router.use('/products', productRoutes);
+
+// ============================================
+// 404 HANDLER
+// ============================================
+
+/**
+ * Catch-all для неіснуючих роутів
+ */
+router.use('*', (req, res) => {
     res.status(404).json({
         success: false,
-        message: 'API endpoint not found',
-        path: req.originalUrl,
-        method: req.method
+        message: `Route ${req.originalUrl} not found`,
+        availableRoutes: [
+            '/api/health',
+            '/api/auth/*',
+            '/api/businesses/*',
+            '/api/websites/*',
+            '/api/products/*'
+        ]
     });
 });
+
+// ============================================
+// EXPORT
+// ============================================
 
 export default router;
