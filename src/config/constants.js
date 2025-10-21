@@ -2,6 +2,49 @@
  * QRHub Project Constants
  * Всі константи проекту згідно ТЗ
  */
+// ============================================
+// FINGERPRINT
+// ============================================
+
+
+export const FINGERPRINT = {
+    // Алгоритм хешування
+    HASH_ALGORITHM: 'sha256',
+
+    // Формат дати для fingerprint (день)
+    DATE_FORMAT: {
+        DAILY: 'YYYY-MM-DD',     // Оновлюється щодня
+        HOURLY: 'YYYY-MM-DD-HH', // Оновлюється кожну годину
+        MONTHLY: 'YYYY-MM'       // Оновлюється щомісяця
+    },
+
+    // Дефолтний формат (щоденний)
+    DEFAULT_DATE_FORMAT: DATE_FORMAT.DAILY
+}
+
+// ============================================
+// GEOLOCATION
+// ============================================
+
+export const GEOLOCATION = {
+    IP_API_ENDPOINTS: {
+        PRIMARY: 'http://ip-api.com/json',      // 45 req/min
+        BACKUP: 'https://ipapi.co',             // 1000 req/day (потребує /json/)
+        FALLBACK: 'https://freegeoip.app/json'  // Fallback
+    },
+
+    // Timeout для запитів (5 секунд)
+    REQUEST_TIMEOUT: 5000,
+
+    // Дефолтні значення
+    DEFAULT_LOCATION: {
+        country: 'Unknown',
+        city: 'Unknown',
+        region: 'Unknown',
+        lat: null,
+        lon: null
+    }
+}
 
 // ============================================
 // СТАТУСИ
@@ -175,6 +218,20 @@ export const QR_CODE_SETTINGS = {
 };
 
 // ============================================
+// SHORT CODE SETTINGS (для nanoid)
+// ============================================
+
+export const SHORT_CODE_SETTINGS = {
+    // Алфавіт для генерації (без схожих символів: 0/O, 1/l/I)
+    SAFE_ALPHABET: '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ',
+    // Довжина за замовчуванням
+    DEFAULT_LENGTH: 8,
+    // Мінімальна та максимальна довжина
+    MIN_LENGTH: 6,
+    MAX_LENGTH: 20
+};
+
+// ============================================
 // PAGINATION
 // ============================================
 
@@ -224,6 +281,15 @@ export const PRODUCT_FILE_TYPES = {
     }
 };
 
+// Типи файлів для QR Codes
+export const QR_FILE_TYPES = {
+    IMAGE: {
+        ALLOWED_TYPES: ['image/png'], // QR тільки PNG
+        MAX_SIZE: 2 * 1024 * 1024, // 2MB
+        FOLDER: 'qrcodes'
+    }
+};
+
 // ============================================
 // SLUG RULES
 // ============================================
@@ -236,7 +302,7 @@ export const SLUG_RULES = {
         'api', 'admin', 'auth', 'login', 'logout', 'register',
         'dashboard', 'settings', 'profile', 'help', 'support',
         'about', 'contact', 'terms', 'privacy', 'new', 'edit',
-        'create', 'delete', 'update', 'public', 'static'
+        'create', 'delete', 'update', 'public', 'static', 's'
     ]
 };
 
@@ -292,6 +358,24 @@ export const PRODUCT_LIMITS = {
     PRICE: {
         MIN: 0,
         MAX: 999999.99
+    }
+};
+
+// ============================================
+// QR CODE-SPECIFIC CONSTANTS
+// ============================================
+
+// Ліміти для QR Code
+export const QR_CODE_LIMITS = {
+    NAME: {
+        MIN_LENGTH: 3,
+        MAX_LENGTH: 100
+    },
+    DESCRIPTION: {
+        MAX_LENGTH: 500
+    },
+    TARGET_URL: {
+        MAX_LENGTH: 2048 // Максимальна довжина URL для QR
     }
 };
 
@@ -357,15 +441,18 @@ export default {
     DEFAULT_CURRENCY,
     REFERRAL,
     QR_CODE_SETTINGS,
+    SHORT_CODE_SETTINGS,
     PAGINATION,
     JWT,
     BUSINESS_FILE_TYPES,
     WEBSITE_FILE_TYPES,
     PRODUCT_FILE_TYPES,
+    QR_FILE_TYPES,
     SLUG_RULES,
     CONTACT_VALIDATION,
     WEBSITE_SEO,
     PRODUCT_LIMITS,
+    QR_CODE_LIMITS,
     isValidStatus,
     getPlanLimits,
     isLimitReached,

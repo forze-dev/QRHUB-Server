@@ -18,13 +18,12 @@ Backend для платформи QRHub - створення QR кодів, ге
 ### 📁 Структура проекту
 ```
 src/
-├── controllers/       # HTTP обробка (Auth, Business, Website, Product)
-├── services/          # Бізнес-логіка (Auth, Business, Website, Product, S3)
-├── models/            # MongoDB схеми (User, Business, Website, Product)
-├── routes/            # Маршрутизація (auth, business, website, product)
-├── middleware/        # Middleware (auth, error, validate, upload)
-├── validators/        # Joi схеми (business, website, product)
-├── utils/             # Утиліти (logger, errorHandler, responseFormatter, slugGenerator)
+├── controllers/       # HTTP обробка (Auth, Business, Website, Product, QRCode, Scan)
+├── services/          # Бізнес-логіка (Auth, Business, Website, Product, S3, QRCode, Scan)
+├── models/            # MongoDB схеми (User, Business, Website, Product, QRCode, QRScan)
+├── routes/            # Маршрутизація (auth, business, website, product, qrcode, scan)
+├── validators/        # Joi схеми (business, website, product, qrcode)
+├── utils/             # Утиліти (logger, errorHandler, slugGenerator, qrGenerator,shortCodeGenerator, deviceDetector, geolocation,fingerprint)
 ├── config/            # Конфігурація (constants, database)
 └── app.js             # Express налаштування
 ```
@@ -58,22 +57,43 @@ src/
 - ✅ **Публічний доступ** до сайтів по slug
 - ✅ **Bulk order update** для drag-and-drop товарів
 
+### 📱 QR коди (QR Code Module) ✅
+- ✅ **QRCode Model** - MongoDB схема з virtual fields
+- ✅ **QRScan Model** - tracking сканувань
+- ✅ **QRCodeService** - генерація, CRUD, статистика
+- ✅ **ScanService** - обробка сканувань з tracking
+- ✅ **QR Generation** - qrcode library (PNG, SVG, Buffer)
+- ✅ **Short Code** - nanoid (URL-safe, 8 символів)
+- ✅ **S3 Upload** для QR images
+- ✅ **MVP-ліміт**: 1 QR код на website
+- ✅ **Публічний redirect** через /s/:shortCode
+- ✅ **Device detection** - iOS/Android/Desktop
+- ✅ **Geolocation** - країна/місто через IP API
+- ✅ **Fingerprint tracking** - SHA256 для унікальності
+- ✅ **Rate limiting** - захист від спаму (10 сканів/хв)
+
+### 🔍 Tracking (Scan Module) ✅
+- ✅ **Device Detector** - User-Agent parsing (ua-parser-js)
+- ✅ **Geolocation** - IP → країна/місто (ip-api.com)
+- ✅ **Fingerprint** - SHA256 hash для tracking
+- ✅ **ScanController** - публічний redirect endpoint
+- ✅ **Rate limiting** для захисту
+- ✅ **Error pages** - красивий HTML з градієнтом
+
 ---
 
 ## 📊 **СТАТИСТИКА**
 
-**Всього файлів створено:** `39 файлів`
+**Всього файлів створено:** `51 файл`
 
 **По категоріях:**
-- Models: 4 (User, Business, Website, Product)
-- Services: 5 (Auth, Business, Website, Product, S3)
-- Controllers: 4 (Auth, Business, Website, Product)
-- Routes: 5 (index, auth, business, website, product)
-- Middleware: 4 (auth, error, validate, upload)
-- Validators: 3 (business, website, product)
-- Utils: 5 (logger, errorHandler, responseFormatter, connectDB, slugGenerator)
-- Config: 2 (constants, database)
-- Root: 5 (server, .env.example, .gitignore, package.json, README)
+- Models: 6 (User, Business, Website, Product, QRCode, QRScan)
+- Services: 7 (Auth, Business, Website, Product, S3, QRCode, Scan)
+- Controllers: 6 (Auth, Business, Website, Product, QRCode, Scan)
+- Routes: 7 (index, auth, business, website, product, qrcode, scan)
+- Validators: 4 (business, website, product, qrcode)
+- Utils: 8 (logger, errorHandler, responseFormatter, connectDB, slugGenerator, 
+            qrGenerator, shortCodeGenerator, deviceDetector, geolocation, fingerprint)
 
 ---
 
@@ -121,6 +141,28 @@ src/
 ✅ PATCH  /api/products/:id/toggle-availability - Перемкнути доступність [AUTH]
 ```
 
+### **QR Code Endpoints:**
+```
+✅ GET    /api/qrcodes                  - Список QR кодів [AUTH]
+✅ GET    /api/qrcodes/:id              - Один QR код [AUTH]
+✅ POST   /api/qrcodes                  - Створити QR код [AUTH]
+✅ PATCH  /api/qrcodes/:id              - Оновити QR код [AUTH]
+✅ DELETE /api/qrcodes/:id              - Видалити QR код [AUTH]
+✅ GET    /api/qrcodes/:id/download     - Завантажити QR image [AUTH]
+✅ POST   /api/qrcodes/:id/regenerate   - Регенерувати QR [AUTH]
+✅ PATCH  /api/qrcodes/:id/toggle       - Перемкнути статус [AUTH]
+✅ PATCH  /api/qrcodes/:id/activate     - Активувати [AUTH]
+✅ PATCH  /api/qrcodes/:id/deactivate   - Деактивувати [AUTH]
+✅ GET    /api/qrcodes/:id/stats        - Статистика QR [AUTH]
+```
+
+### **Scan Endpoints (Public):**
+```
+✅ GET    /scan/health                     - Health check [PUBLIC]
+✅ GET    /scan/:shortCode                 - Redirect з tracking [PUBLIC]
+✅ GET    /scan/:shortCode/preview         - Preview перед redirect [PUBLIC]
+```
+
 ---
 
 ## 🚀 **ЩО ПРАЦЮЄ ЗАРАЗ**
@@ -153,69 +195,45 @@ src/
 - ✅ Публічний доступ до сайтів через slug
 - ✅ Drag-and-drop товарів (bulk order update)
 - ✅ Перевірка власника при всіх операціях
+- ✅ Користувачі можуть створювати QR коди (MVP: 1 на website)
+- ✅ QR images генеруються та завантажуються в Hetzner S3
+- ✅ Короткі посилання працюють (/s/abc123)
+- ✅ Кожен скан QR трекається (IP, device, geo, fingerprint)
+- ✅ Device detection визначає iOS/Android/Desktop
+- ✅ Geolocation визначає країну та місто
+- ✅ Fingerprint tracking для унікальних користувачів
+- ✅ Rate limiting захищає від спаму (10 сканів/хв)
+- ✅ QRCode.totalScans та uniqueScans оновлюються автоматично
+- ✅ Красиві error pages при помилках сканування
 
 ---
 
 ## 📋 **ЩО ТРЕБА ЗРОБИТИ ДАЛІ**
 
-### **НАСТУПНИЙ МОДУЛЬ: QR Code Module** 🎯
+### **НАСТУПНИЙ МОДУЛЬ: Analytics Module** 🎯
 
-#### **Пріоритет 1 - QR Code (Тиждень 3):**
+#### **Пріоритет 1 - Analytics Module (Тиждень 1):** ⏳
 
-**1. Models:**
-```
-⏳ src/models/QRCode.js
-⏳ src/models/QRScan.js
-```
-
-**2. Services:**
-```
-⏳ src/services/QRCodeService.js
-⏳ src/utils/qrGenerator.js
-```
-
-**3. Controllers:**
-```
-⏳ src/controllers/QRCodeController.js
-```
-
-**4. Routes:**
-```
-⏳ src/routes/qrcodeRoutes.js
-```
-
-**5. Validators:**
-```
-⏳ src/validators/qrcodeValidator.js
-```
-
-**Функціонал QR Code:**
-- Генерація QR кодів для websites
-- Короткі посилання (/s/:shortCode)
-- Tracking сканувань (QRScan model)
-- Завантаження QR image в S3
-- Інкремент Business.qrCodesCount
-
----
-
-#### **Пріоритет 2 - Analytics Module (Тиждень 3):**
 **Файли:**
 ```
 ⏳ src/services/AnalyticsService.js
 ⏳ src/controllers/AnalyticsController.js
 ⏳ src/routes/analyticsRoutes.js
+⏳ src/validators/analyticsValidator.js
 ```
 
 **Функціонал Analytics:**
-- Агрегація сканувань QR кодів
-- Статистика по датах
-- Геолокація (країна/місто)
-- Device detection (iOS/Android/Desktop)
-- Dashboard для користувача
+- Агрегація даних з QRScan collection
+- Графіки сканувань по датах
+- Години пік (0-23)
+- Топ-10 країн та міст
+- Розподіл iOS/Android/Desktop
+- Унікальні vs повторні користувачі
+- Dashboard для бізнесу та користувача
 
 ---
 
-#### **Пріоритет 3 - Requests Module (Тиждень 3):**
+#### **Пріоритет 2 - Requests Module (Тиждень 2):**
 **Файли:**
 ```
 ⏳ src/models/Request.js
@@ -233,7 +251,7 @@ src/
 
 ---
 
-#### **Пріоритет 4 - Testing & Deploy (Тиждень 4):**
+#### **Пріоритет 3 - Testing & Deploy (Тиждень 3):**
 **Файли:**
 ```
 ⏳ tests/unit/
@@ -256,12 +274,12 @@ src/
 
 ```
 ✅ Тиждень 1: Auth + Business Module (100% ✅)
-✅ Тиждень 2: Website Module (100% ✅)
-⏳ Тиждень 3: QR Code + Analytics + Requests (0%)
+✅ Тиждень 2: Website + Product Module (100% ✅)
+⏳ Тиждень 3: QR Code Module (100% ✅) + Analytics (0%) + Requests (0%)
 ⏳ Тиждень 4: Testing + Deploy (0%)
 ```
 
-**Загальний прогрес:** `50% / 100%` 🎯
+**Загальний прогрес:** `66% / 100%` 🎯
 
 ---
 
@@ -379,7 +397,17 @@ npm run dev
    - POST `/api/products` (multipart/form-data)
    - Поля: websiteId, name, price, image (file)
 
-5. **Публічний доступ:**
+5. **Створити QR Code:**
+   - POST `/api/qrcodes` (application/json)
+   - Поля: businessId, websiteId, name, targetUrl, primaryColor, backgroundColor
+
+6. **Сканувати QR:**
+   - GET `/s/{shortCode}` (без auth, публічний)
+   - Перевірити redirect
+   - Перевірити QRScan запис в БД
+   - Перевірити інкремент QRCode.totalScans
+
+7. **Публічний доступ:**
    - GET `/api/websites/slug/:slug` (без auth)
    - GET `/api/websites/:websiteId/products` (без auth)
 
@@ -404,4 +432,4 @@ npm run dev
 
 **Статус:** 🟢 Website Module завершено, готовий до розробки QR Code Module
 
-**Поточна версія:** `v0.4.1`
+**Поточна версія:** `v0.6.0`

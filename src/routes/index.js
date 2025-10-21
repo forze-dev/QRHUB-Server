@@ -16,7 +16,8 @@ import authRoutes from './authRoutes.js';
 import businessRoutes from './businessRoutes.js';
 import websiteRoutes from './websiteRoutes.js';
 import productRoutes from './productRoutes.js';
-// import qrcodeRoutes from './qrcodeRoutes.js';
+import qrcodeRoutes from './qrcodeRoutes.js';
+import scanRoutes from './routes/scanRoutes.js';
 // import analyticsRoutes from './analyticsRoutes.js';
 // import requestRoutes from './requestRoutes.js';
 
@@ -69,9 +70,19 @@ router.use('/websites', websiteRoutes);
 router.use('/products', productRoutes);
 
 // ============================================
+// QRCODES ROUTES
+// ============================================
+
+router.use('/qrcodes', qrcodeRoutes);
+
+// ============================================
+// SCAN ROUTES (закоментовані поки не створені)
+// ============================================
+app.use('/scan', scanRoutes);
+
+// ============================================
 // FUTURE ROUTES (закоментовані поки не створені)
 // ============================================
-// router.use('/qrcodes', qrcodeRoutes);
 // router.use('/analytics', analyticsRoutes);
 // router.use('/requests', requestRoutes);
 
